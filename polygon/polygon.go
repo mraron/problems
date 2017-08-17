@@ -17,13 +17,13 @@ import (
 	"io/ioutil"
 
 	"bytes"
-	"fmt"
-	"time"
-	"errors"
-	"strings"
 	"encoding/json"
-	"text/template"
+	"errors"
+	"fmt"
 	"strconv"
+	"strings"
+	"text/template"
+	"time"
 )
 
 const htmlTemplate = `<link href="problem-statement.css" rel="stylesheet" type="text/css"><div class="problem-statement">
@@ -56,61 +56,61 @@ const htmlTemplate = `<link href="problem-statement.css" rel="stylesheet" type="
 var htmlTmpl *template.Template
 
 type SampleTest struct {
-	Input string
+	Input  string
 	Output string
 }
 
 type JSONStatement struct {
-	Name string
-	TimeLimit int
+	Name        string
+	TimeLimit   int
 	MemoryLimit int
-	InputFile string
-	OutputFile string
-	Legend string
-	Input string
-	Output string
+	InputFile   string
+	OutputFile  string
+	Legend      string
+	Input       string
+	Output      string
 	SampleTests []SampleTest
-	Notes string
+	Notes       string
 }
 
 type Name struct {
 	Language string `xml:"language,attr"`
-	Value string `xml:"value,attr"`
+	Value    string `xml:"value,attr"`
 }
 
 type Statement struct {
 	Language string `xml:"language,attr"`
-	Path string `xml:"path,attr"`
-	Type string `xml:"type,attr"`
+	Path     string `xml:"path,attr"`
+	Type     string `xml:"type,attr"`
 }
 
 type Test struct {
 	Method string `xml:"method,attr"`
-	Cmd string `xml:"cmd,attr"`
-	Sample bool `xml:"sample,attr"`
-	Score int `xml:"score,attr"`
+	Cmd    string `xml:"cmd,attr"`
+	Sample bool   `xml:"sample,attr"`
+	Score  int    `xml:"score,attr"`
 }
 
 type Judging struct {
-	CpuName string `xml:"cpu-name,attr"`
-	CpuSpeed int `xml:"cpu-speed,attr"`
-	InputFile string `xml:"input-file,attr"`
+	CpuName    string `xml:"cpu-name,attr"`
+	CpuSpeed   int    `xml:"cpu-speed,attr"`
+	InputFile  string `xml:"input-file,attr"`
 	OutputFile string `xml:"output-file,attr"`
 
 	TestSet []struct {
-		Name string `xml:"name,attr"`
-		TimeLimit int `xml:"time-limit"`
-		MemoryLimit int `xml:"memory-limit"`
-		TestCount int `xml:"test-count"`
-		InputPathPattern string `xml:"input-path-pattern"`
+		Name              string `xml:"name,attr"`
+		TimeLimit         int    `xml:"time-limit"`
+		MemoryLimit       int    `xml:"memory-limit"`
+		TestCount         int    `xml:"test-count"`
+		InputPathPattern  string `xml:"input-path-pattern"`
 		AnswerPathPattern string `xml:"answer-path-pattern"`
-		Scoring string `xml:"scoring,attr"`
-		Tests []Test `xml:"tests>test"`
+		Scoring           string `xml:"scoring,attr"`
+		Tests             []Test `xml:"tests>test"`
 	} `xml:"testset"`
 }
 
 type Attachment struct {
-	Name string `xml:"name,attr"`
+	Name     string `xml:"name,attr"`
 	Location string `xml:"location,attr"`
 }
 
@@ -120,19 +120,19 @@ type Assets struct {
 
 type Problem struct {
 	Path                   string
-	JSONStatementList []JSONStatement
-	AttachmentsList []problems.Attachment
+	JSONStatementList      []JSONStatement
+	AttachmentsList        []problems.Attachment
 	GeneratedStatementList []problems.Content
 
-	FeedbackType  string `xml:"feedback,attr"`
-	Revision      int `xml:"revision,attr"`
-	ShortName     string `xml:"short-name,attr"`
-	Url           string `xml:"url,attr"`
-	Names         []Name `xml:"names>name"`
+	FeedbackType  string      `xml:"feedback,attr"`
+	Revision      int         `xml:"revision,attr"`
+	ShortName     string      `xml:"short-name,attr"`
+	Url           string      `xml:"url,attr"`
+	Names         []Name      `xml:"names>name"`
 	StatementList []Statement `xml:"statements>statement"`
-	Judging       Judging `xml:"judging"`
-	Assets Assets `xml:"assets"`
-	TagsList []struct {
+	Judging       Judging     `xml:"judging"`
+	Assets        Assets      `xml:"assets"`
+	TagsList      []struct {
 		Value string `xml:"value,attr"`
 	} `xml:"tags>tag"`
 }
@@ -164,7 +164,6 @@ func (p Problem) HTMLStatements() []problems.Content {
 
 	return lst
 }
-
 
 func (p Problem) PDFStatements() []problems.Content {
 	lst := make([]problems.Content, 0)
@@ -218,21 +217,30 @@ func (p Problem) Compile(s language.Sandbox, lang language.Language, src io.Read
 }
 
 func (Problem) Languages() []language.Language {
-	return language.List()
+	lst1 := language.List()
+
+	lst2 := make([]language.Language, 0, len(lst1))
+	for _, val := range lst1 {
+		if val.Id() != "zip" {
+			lst2 = append(lst2, val)
+		}
+	}
+
+	return lst2
 }
 
 func truncate(s string) string {
-	if len(s)<256 {
+	if len(s) < 256 {
 		return s
 	}
 
-	return s[:255]+"..."
+	return s[:255] + "..."
 }
 
 func (p Problem) Run(s language.Sandbox, lang language.Language, bin io.Reader, testNotifier chan string, statusNotifier chan problems.Status) (problems.Status, error) {
 	var (
-		ans problems.Status
-		err error
+		ans            problems.Status
+		err            error
 		binaryContents []byte
 	)
 
@@ -253,7 +261,7 @@ func (p Problem) Run(s language.Sandbox, lang language.Language, bin io.Reader, 
 		ans.Feedback = append(ans.Feedback, problems.Testset{Name: ts.Name})
 		testset := &ans.Feedback[len(ans.Feedback)-1]
 		testset.Scoring = problems.ScoringFromString(ts.Scoring)
-		for tc := 1; tc <= ts.TestCount; tc ++ {
+		for tc := 1; tc <= ts.TestCount; tc++ {
 			testNotifier <- strconv.Itoa(tc)
 			statusNotifier <- ans
 
@@ -268,24 +276,22 @@ func (p Problem) Run(s language.Sandbox, lang language.Language, bin io.Reader, 
 
 			answerFile, err := os.Open(answerLocation)
 			if err != nil {
-				return  ans, err
+				return ans, err
 			}
 
 			answerContents, err := ioutil.ReadAll(answerFile)
 			if err != nil {
-				return  ans, err
+				return ans, err
 			}
 
 			res, err := lang.Run(s, bytes.NewReader(binaryContents), testcase, stdout, time.Duration(ts.TimeLimit)*time.Millisecond, ts.MemoryLimit)
 			if err != nil {
-				return  ans, err
+				return ans, err
 			}
 
 			if res.Verdict == language.VERDICT_OK {
 				checkerOutput := &bytes.Buffer{}
 				programOutput := stdout.String()
-
-
 
 				expectedOutput := string(answerContents)
 
@@ -296,24 +302,24 @@ func (p Problem) Run(s language.Sandbox, lang language.Language, bin io.Reader, 
 
 				err = cmd.Run()
 
-			/*	if err != nil {
+				/*	if err != nil {
 					ans.Feedback = append(ans.Feedback, problems.Testcase{VerdictName: problems.VERDICT_XX, MemoryUsed: res.Memory, TimeSpent: res.Time})
 					return ans, err
 				}*/
 
-				testset.Testcases = append(testset.Testcases, problems.Testcase{MaxScore: p.Judging.TestSet[tsid].Tests[tc-1].Score,Testset: ts.Name, MemoryUsed: res.Memory, TimeSpent: res.Time, Output: truncate(programOutput), ExpectedOutput: truncate(expectedOutput), CheckerOutput: truncate(checkerOutput.String())})
+				testset.Testcases = append(testset.Testcases, problems.Testcase{MaxScore: float64(p.Judging.TestSet[tsid].Tests[tc-1].Score), Testset: ts.Name, MemoryUsed: res.Memory, TimeSpent: res.Time, Output: truncate(programOutput), ExpectedOutput: truncate(expectedOutput), CheckerOutput: truncate(checkerOutput.String())})
 
 				if err == nil && cmd.ProcessState.Success() {
 					testset.Testcases[len(testset.Testcases)-1].VerdictName = problems.VERDICT_AC
-					testset.Testcases[len(testset.Testcases)-1].Score=testset.Testcases[len(testset.Testcases)-1].MaxScore
-				}else {
+					testset.Testcases[len(testset.Testcases)-1].Score = testset.Testcases[len(testset.Testcases)-1].MaxScore
+				} else {
 					testset.Testcases[len(testset.Testcases)-1].VerdictName = problems.VERDICT_WA
-					testset.Testcases[len(testset.Testcases)-1].Score=0
+					testset.Testcases[len(testset.Testcases)-1].Score = 0
 					if problems.FeedbackFromString(p.FeedbackType) != problems.FEEDBACK_IOI {
 						return ans, nil
 					}
 				}
-			}else {
+			} else {
 				curr := problems.Testcase{}
 				curr.Testset = ts.Name
 				switch res.Verdict {
@@ -329,8 +335,8 @@ func (p Problem) Run(s language.Sandbox, lang language.Language, bin io.Reader, 
 
 				curr.MemoryUsed = res.Memory
 				curr.TimeSpent = res.Time
-				curr.Score=0
-				curr.MaxScore=p.Judging.TestSet[tsid].Tests[tc-1].Score
+				curr.Score = 0
+				curr.MaxScore = float64(p.Judging.TestSet[tsid].Tests[tc-1].Score)
 				curr.Output = truncate(stdout.String()) //now it's stderr
 				curr.ExpectedOutput = truncate(string(answerContents))
 
@@ -346,7 +352,6 @@ func (p Problem) Run(s language.Sandbox, lang language.Language, bin io.Reader, 
 
 	return ans, nil
 }
-
 
 func parser(path string) (problems.Problem, error) {
 	problemXML := filepath.Join(path, "problem.xml")
@@ -370,7 +375,7 @@ func parser(path string) (problems.Problem, error) {
 		return nil, err
 	}
 
-	for _,  dir := range list {
+	for _, dir := range list {
 		if !dir.IsDir() || strings.HasPrefix(dir.Name(), ".") {
 			continue
 		}
@@ -388,7 +393,7 @@ func parser(path string) (problems.Problem, error) {
 		}
 
 		replace := func(str *string) {
-			*str = strings.Replace(*str,  "\n\n", "<p></p><p></p>", -1)
+			*str = strings.Replace(*str, "\n\n", "<p></p><p></p>", -1)
 		}
 
 		replace(&jsonstmt.Legend)
@@ -419,7 +424,6 @@ func parser(path string) (problems.Problem, error) {
 		p.GeneratedStatementList = append(p.GeneratedStatementList, problems.Content{Locale: stmt.Language, Contents: cont, Type: stmt.Type})
 	}
 
-
 	if _, err := os.Stat(filepath.Join(path, "check")); os.IsNotExist(err) {
 		if checkerBinary, err := os.Create(filepath.Join(path, "check")); err == nil {
 			defer checkerBinary.Close()
@@ -435,13 +439,13 @@ func parser(path string) (problems.Problem, error) {
 					if err := os.Chmod(filepath.Join(path, "check"), 0777); err != nil {
 						return nil, err
 					}
-				}else {
+				} else {
 					return nil, err
 				}
-			}else {
+			} else {
 				return nil, errors.New("error while parsing polygon problem can't compile polygon checker because there's no cpp11 compiler")
 			}
-		}else {
+		} else {
 			return nil, err
 		}
 	}
@@ -469,7 +473,7 @@ func init() {
 
 	if tmpl, err := template.New("polygonHtmlTemplate").Parse(htmlTemplate); err != nil {
 		panic(err)
-	}else {
+	} else {
 		htmlTmpl = tmpl
 	}
 }

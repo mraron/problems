@@ -40,7 +40,7 @@ func CombineIdentifiers(identifiers ...Identifier) Identifier {
 func DefaultIdentifier(name string) Identifier {
 	return func(s string) bool {
 		_, err := os.Stat(filepath.Join(s, name + ".problem"))
-		return os.IsExist(err)
+		return !os.IsNotExist(err)
 	}
 
 }
@@ -64,8 +64,8 @@ func Parse(dir string) (Problem, error) {
 	matches, first_match := 0, -1
 	for ind, val := range problemTypes {
 		ok := true
-		for _, ident := range val.identifiers {
-			if !ident(dir) {
+		for _, identifier := range val.identifiers {
+			if !identifier(dir) {
 				ok = false
 			}
 		}
